@@ -1,0 +1,86 @@
+[
+  {
+    "id": "sched-1",
+    "subject": "Embedded Systems",
+    "class": "BSCS 3",
+    "section": "Section A",
+    "day": "Mon",
+    "start": "08:00",
+    "end": "10:00",
+    "room": "Lab 301",
+    "grace": 15,
+    "color": "#3F3FD0"
+  },
+  {
+    "id": "sched-2",
+    "subject": "IoT Architecture",
+    "class": "BSCS 3",
+    "section": "Section B",
+    "day": "Mon",
+    "start": "10:30",
+    "end": "12:30",
+    "room": "Lab 302",
+    "grace": 15,
+    "color": "#10C98F"
+  },
+  {
+    "id": "sched-3",
+    "subject": "Microcontrollers",
+    "class": "BSIT 2",
+    "section": "Section A",
+    "day": "Tue",
+    "start": "09:00",
+    "end": "11:00",
+    "room": "Room 204",
+    "grace": 15,
+    "color": "#F5A623"
+  },
+  {
+    "id": "sched-4",
+    "subject": "Embedded Systems",
+    "class": "BSCS 3",
+    "section": "Section A",
+    "day": "Wed",
+    "start": "08:00",
+    "end": "10:00",
+    "room": "Lab 301",
+    "grace": 15,
+    "color": "#3F3FD0"
+  },
+  {
+    "id": "sched-5",
+    "subject": "Data Communications",
+    "class": "BSCS 3",
+    "section": "Section A",
+    "day": "Thu",
+    "start": "13:00",
+    "end": "15:00",
+    "room": "Room 105",
+    "grace": 15,
+    "color": "#E64980"
+  },
+  {
+    "id": "sched-6",
+    "subject": "Robotics & Sensors",
+    "class": "BSCS 3",
+    "section": "Section A",
+    "day": "Fri",
+    "start": "08:00",
+    "end": "11:00",
+    "room": "Eng Lab 1",
+    "grace": 15,
+    "color": "#0CA678"
+  },
+  {
+    "id": "sched-7",
+    "subject": "Capstone Project",
+    "class": "BSCS 3",
+    "section": "Section A",
+    "day": "Sat",
+    "start": "09:00",
+    "end": "12:00",
+    "room": "Lab 301",
+    "grace": 15,
+    "color": "#7950F2"
+  }
+]

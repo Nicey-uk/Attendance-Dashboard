@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>WDC Attendance — ESP32-CAM RFID System</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <div class="app-shell" id="appShell">
+    <!-- Mobile backdrop -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="App.closeMobileSidebar()"></div>
+
+    <!-- Dual Sidebar (Icon Rail + White Menu Sidebar) -->
+    <aside class="sidebar-wrapper" id="sidebarWrapper" aria-label="Main Navigation">
+      <!-- Narrow Deep Indigo Icon Rail (#3F3FD0) -->
+      <div class="icon-rail">
+        <a href="#attendance" class="rail-brand" title="WDC Attendance System">
+          <svg viewBox="0 0 28 28" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="14" cy="7" r="3.2" fill="currentColor" stroke="none"/>
+            <path d="M5 14.5L14 19l9-4.5M5 19.5L14 24l9-4.5"/>
+            <path d="M9 12.5c1.5-1.2 3.2-1.8 5-1.8s3.5.6 5 1.8"/>
+          </svg>
+        </a>
+
+        <nav class="rail-nav">
+          <a href="#dashboard" class="rail-link" data-page="dashboard" title="Dashboard">
+            <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+              <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+              <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+              <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+            </svg>
+          </a>
+          <a href="#attendance" class="rail-link active" data-page="attendance" title="Attendance">
+            <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3.5" y="3.5" width="17" height="17" rx="3"/>
+              <path d="M8.5 12.5l2.5 2.5 4.8-5.2"/>
+            </svg>
+          </a>
+          <a href="#schedule" class="rail-link" data-page="schedule" title="Class Schedule">
+            <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="17" rx="2.5"/>
+              <line x1="16" y1="2.5" x2="16" y2="6"/>
+              <line x1="8" y1="2.5" x2="8" y2="6"/>
+              <line x1="3" y1="9.5" x2="21" y2="9.5"/>
+              <path d="M8 14h3M13 14h3M8 17.5h3"/>
+            </svg>
+          </a>
+        </nav>
+
+        <div class="rail-footer">
+          <span class="hw-dot" id="hwStatusDot" title="ESP32-CAM Status"></span>
+        </div>
+      </div>
+
+      <!-- White Secondary Label Sidebar -->
+      <div class="menu-sidebar">
+        <div class="brand-header">
+          <span class="brand-text">WDC</span>
+        </div>
+        <nav class="menu-list">
+          <a href="#dashboard" class="menu-item" data-page="dashboard">
+            <span>Dashboard</span>
+          </a>
+          <a href="#attendance" class="menu-item active" data-page="attendance">
+            <span>Attendance</span>
+          </a>
+          <a href="#schedule" class="menu-item" data-page="schedule">
+            <span>Class Schedule</span>
+          </a>
+        </nav>
+
+        <div class="sidebar-system-card">
+          <div class="sys-row">
+            <span class="sys-label">Board</span>
+            <span class="sys-val">ESP32-CAM</span>
+          </div>
+          <div class="sys-row">
+            <span class="sys-label">RFID</span>
+            <span class="sys-val">RC522 SPI</span>
+          </div>
+          <div class="sys-row">
+            <span class="sys-label">Time (PHT)</span>
+            <span class="sys-val" id="sidebarClock">--:--:--</span>
+          </div>
+          <div class="sys-row">
+            <span class="sys-label">Mode</span>
+            <span class="sys-val badge-mode" id="connectionModeBadge">Connecting</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Right Column -->
+    <div class="main-area">
+      <!-- Top Bar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="icon-btn hamburger-btn" id="sidebarToggleBtn" aria-label="Toggle Menu" onclick="App.toggleSidebar()">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+              <line x1="3" y1="6" x2="21" y2="6"/>
+              <line x1="3" y1="12" x2="16" y2="12"/>
+              <line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+          </button>
+          <span class="mobile-logo">WDC</span>
+
+          <!-- Decorative topbar quick icons matching screenshot -->
+          <div class="topbar-quick-icons">
+            <a href="#dashboard" class="quick-icon" title="Live Feed & Summary">
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor">
+                <path d="M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zm0 2v.5l8 4.8 8-4.8V7H4zm16 10V9.8l-7.5 4.5a1 1 0 0 1-1 0L4 9.8V17h16z"/>
+              </svg>
+            </a>
+            <a href="#attendance" class="quick-icon" title="Attendance Log">
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor">
+                <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm-1.2 14.2L6.6 12l1.4-1.4 2.8 2.8 5.8-5.8L18 9z"/>
+              </svg>
+            </a>
+            <a href="#schedule" class="quick-icon" title="Class Schedule">
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor">
+                <path d="M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 15H5V10h14v9z"/>
+              </svg>
+            </a>
+          </div>
+
+          <!-- Active Session Pill (shown when Take Attendance is open) -->
+          <div class="session-banner hidden" id="topbarSessionBanner" onclick="App.navigateTo('attendance')">
+            <span class="pulse-dot"></span>
+            <span id="topbarSessionText">Session Open</span>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <!-- Simulate RFID Tap button (helpful for testing in browser or demoing) -->
+          <button class="sim-tap-btn" id="simTapBtn" onclick="App.simulateRfidTap()" title="Simulate an RFID Card Tap for testing">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 12h4l3-9 4 18 3-9h6"/>
+            </svg>
+            <span>Test Tap</span>
+          </button>
+
+          <!-- Notification Bell -->
+          <div class="notif-wrapper">
+            <button class="icon-btn notif-btn" id="notifBtn" onclick="App.toggleNotifDropdown(event)" aria-label="Notifications">
+              <svg viewBox="0 0 24 24" width="19" height="19" fill="currentColor">
+                <path d="M12 22a2.4 2.4 0 0 0 2.4-2.4h-4.8A2.4 2.4 0 0 0 12 22zm6.6-6v-5.4c0-3.3-1.8-6.1-4.8-6.9V3a1.8 1.8 0 0 0-3.6 0v.7c-3 .8-4.8 3.6-4.8 6.9V16L3.6 17.8v1.2h16.8v-1.2L18.6 16z"/>
+              </svg>
+              <span class="notif-badge" id="notifCountBadge">0</span>
+            </button>
+            <div class="notif-dropdown hidden" id="notifDropdown">
+              <div class="notif-header">
+                <span>Recent RFID Scans</span>
+                <span class="notif-sub">GMT+8 Live</span>
+              </div>
+              <div class="notif-list" id="notifList">
+                <div class="empty-mini">No taps recorded yet</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="topbar-divider"></div>
+
+          <!-- User Profile Area -->
+          <div class="user-profile">
+            <div class="user-info">
+              <div class="user-name">Brittany Babotts</div>
+              <div class="user-role">Designation</div>
+            </div>
+            <div class="user-avatar" title="Brittany Babotts — Faculty">
+              <svg viewBox="0 0 64 64" width="38" height="38">
+                <defs>
+                  <linearGradient id="profGrad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#3F3FD0"/>
+                    <stop offset="100%" stop-color="#6767E8"/>
+                  </linearGradient>
+                </defs>
+                <circle cx="32" cy="32" r="32" fill="url(#profGrad)"/>
+                <circle cx="32" cy="24" r="10" fill="#F8FAFC"/>
+                <path d="M14 54c3-10 11-15 18-15s15 5 18 15" fill="#F8FAFC"/>
+              </svg>
+            </div>
+            <svg class="user-caret" viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+              <path d="M7 10l5 5 5-5z"/>
+            </svg>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Content Container -->
+      <main class="content-area">
+
+        <!-- =========================================================
+             PAGE 1: DASHBOARD (#dashboard)
+             ========================================================= -->
+        <section class="page-section hidden" id="page-dashboard">
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">Dashboard</h1>
+              <p class="page-subtitle">Real-time ESP32-CAM RFID attendance overview &bull; Auto-refreshes every 5s</p>
+            </div>
+            <div class="header-actions">
+              <span class="refresh-indicator" id="lastSyncText">Synced just now</span>
+              <button class="btn btn-outline" onclick="App.refreshAll(true)">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/>
+                </svg>
+                <span>Refresh</span>
+              </button>
+              <a href="/export" download="attendance.csv" class="btn btn-primary" onclick="return App.handleExportCSV(event)">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                </svg>
+                <span>Export CSV</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- 5 Summary Cards -->
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-icon kpi-indigo">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+              </div>
+              <div class="kpi-body">
+                <span class="kpi-label">Total Students</span>
+                <strong class="kpi-value" id="kpiTotalStudents">0</strong>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-icon kpi-green">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                  <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+              </div>
+              <div class="kpi-body">
+                <span class="kpi-label">Present Today</span>
+                <strong class="kpi-value text-present" id="kpiPresentToday">0</strong>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-icon kpi-red">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="15" y1="9" x2="9" y2="15"/>
+                  <line x1="9" y1="9" x2="15" y2="15"/>
+                </svg>
+              </div>
+              <div class="kpi-body">
+                <span class="kpi-label">Absent Today</span>
+                <strong class="kpi-value text-absent" id="kpiAbsentToday">0</strong>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-icon kpi-orange">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12 6 12 12 16 14"/>
+                </svg>
+              </div>
+              <div class="kpi-body">
+                <span class="kpi-label">Late Today</span>
+                <strong class="kpi-value text-late" id="kpiLateToday">0</strong>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-icon kpi-rate">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="19" y1="5" x2="5" y2="19"/>
+                  <circle cx="6.5" cy="6.5" r="2.5"/>
+                  <circle cx="17.5" cy="17.5" r="2.5"/>
+                </svg>
+              </div>
+              <div class="kpi-body">
+                <span class="kpi-label">Attendance Rate</span>
+                <strong class="kpi-value" id="kpiAttendanceRate">0%</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chart + Live Recent Taps Grid -->
+          <div class="dashboard-split">
+            <!-- 7-Day Attendance Chart Card -->
+            <div class="card chart-card">
+              <div class="card-header">
+                <div>
+                  <h2 class="card-title">Last 7 Days Attendance</h2>
+                  <p class="card-subtitle">Daily breakdown of Present, Late, and Absent records</p>
+                </div>
+                <div class="chart-legend">
+                  <span class="legend-item"><i class="dot dot-present"></i>Present</span>
+                  <span class="legend-item"><i class="dot dot-late"></i>Late</span>
+                  <span class="legend-item"><i class="dot dot-absent"></i>Absent</span>
+                </div>
+              </div>
+              <div class="chart-container" id="sevenDayChart">
+                <!-- Dynamic Inline SVG Chart rendered by app.js -->
+              </div>
+            </div>
+
+            <!-- Recent Taps Live Feed (Last 10 taps) -->
+            <div class="card feed-card">
+              <div class="card-header">
+                <div>
+                  <h2 class="card-title">Recent Taps Live Feed</h2>
+                  <p class="card-subtitle">Latest 10 RFID scans &amp; QVGA snapshots</p>
+                </div>
+                <span class="live-pill"><span class="pulse-dot"></span>LIVE</span>
+              </div>
+              <div class="recent-taps-list" id="recentTapsList">
+                <!-- Populated by app.js -->
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- =========================================================
+             PAGE 2: ATTENDANCE (#attendance - Main Screenshot Page)
+             ========================================================= -->
+        <section class="page-section" id="page-attendance">
+          <!-- Title + Date Navigator (< Today 14 Nov 2026 >) -->
+          <div class="page-header attendance-top-row">
+            <h1 class="page-title">Attendance</h1>
+
+            <div class="date-navigator">
+              <button class="date-nav-arrow" onclick="App.shiftDate(-1)" title="Previous Day" aria-label="Previous Day">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="15 18 9 12 15 6"/>
+                </svg>
+              </button>
+
+              <label class="date-display" for="attendanceDatePicker" title="Click to choose date">
+                <svg class="date-cal-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2"/>
+                  <line x1="16" y1="2" x2="16" y2="6"/>
+                  <line x1="8" y1="2" x2="8" y2="6"/>
+                  <line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                <span id="dateDisplayLabel">Today 16 Nov 2026</span>
+                <input type="date" id="attendanceDatePicker" class="sr-date-input" onchange="App.onDatePick(this.value)">
+              </label>
+
+              <button class="date-nav-arrow" onclick="App.shiftDate(1)" title="Next Day" aria-label="Next Day">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Filter Bar (Matches WDC Attendance Screenshot) -->
+          <div class="filter-bar">
+            <div class="filter-controls">
+              <div class="select-wrap">
+                <select id="filterClass" onchange="App.onFilterChange()">
+                  <option value="">Select Class</option>
+                </select>
+                <svg class="select-caret" viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+              </div>
+
+              <div class="select-wrap">
+                <select id="filterSubject" onchange="App.onFilterChange()">
+                  <option value="">Select Subject</option>
+                </select>
+                <svg class="select-caret" viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+              </div>
+
+              <div class="select-wrap">
+                <select id="filterSection" onchange="App.onFilterChange()">
+                  <option value="">Select Section</option>
+                </select>
+                <svg class="select-caret" viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+              </div>
+
+              <button class="btn btn-take-attendance" id="takeAttendanceBtn" onclick="App.toggleSession()">
+                <span class="session-dot hidden" id="takeAttDot"></span>
+                <span id="takeAttendanceBtnText">Take Attendance</span>
+              </button>
+
+              <button class="btn btn-outline" type="button" onclick="App.openStudentModal()" title="Add or register a new student card">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                  <circle cx="8.5" cy="7" r="4"/>
+                  <line x1="20" y1="8" x2="20" y2="14"/>
+                  <line x1="17" y1="11" x2="23" y2="11"/>
+                </svg>
+                <span>Add Student</span>
+              </button>
+            </div>
+
+            <div class="filter-right-tools">
+              <!-- Search Input -->
+              <div class="search-box">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="8"/>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input type="text" id="studentSearchInput" placeholder="Search name or UID..." oninput="App.renderAttendanceView()">
+              </div>
+
+              <!-- Export CSV button -->
+              <a href="/export" download="attendance.csv" class="btn btn-export-csv" onclick="return App.handleExportCSV(event)" title="Download /attendance.csv">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                </svg>
+                <span>Export CSV</span>
+              </a>
+
+              <!-- List / Grid Toggle (matches screenshot) -->
+              <div class="view-toggle" role="group" aria-label="View Mode">
+                <button class="view-btn" id="viewBtnList" onclick="App.setViewMode('list')" title="List View">
+                  <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="8" y1="6" x2="20" y2="6"/>
+                    <line x1="8" y1="12" x2="20" y2="12"/>
+                    <line x1="8" y1="18" x2="20" y2="18"/>
+                    <circle cx="4" cy="6" r="1.2" fill="currentColor"/>
+                    <circle cx="4" cy="12" r="1.2" fill="currentColor"/>
+                    <circle cx="4" cy="18" r="1.2" fill="currentColor"/>
+                  </svg>
+                </button>
+                <button class="view-btn active" id="viewBtnGrid" onclick="App.setViewMode('grid')" title="Grid View">
+                  <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor">
+                    <rect x="3" y="3" width="7.5" height="7.5" rx="1.5"/>
+                    <rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5"/>
+                    <rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5"/>
+                    <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Session Status Info Strip -->
+          <div class="session-info-strip" id="sessionInfoStrip">
+            <div class="strip-left">
+              <span class="strip-status-pill" id="stripStatusPill">Standby</span>
+              <span id="stripScheduleInfo">Grace period: 15 min after class start &bull; Click P / A / L circles to override</span>
+            </div>
+            <div class="strip-counts">
+              <span class="mini-stat"><b class="text-present" id="attCountP">0</b> Present</span>
+              <span class="mini-stat"><b class="text-absent" id="attCountA">0</b> Absent</span>
+              <span class="mini-stat"><b class="text-late" id="attCountL">0</b> Late</span>
+            </div>
+          </div>
+
+          <!-- Grid View Container (Alphabetical A, B, C...) -->
+          <div id="attendanceGridContainer" class="attendance-grid-wrapper"></div>
+
+          <!-- List View Container (Table: Photo, UID, Name, Time In, Status) -->
+          <div id="attendanceListContainer" class="card attendance-list-wrapper hidden">
+            <div class="table-responsive">
+              <table class="att-table">
+                <thead>
+                  <tr>
+                    <th>Photo</th>
+                    <th>UID</th>
+                    <th>Name</th>
+                    <th>Class / Section</th>
+                    <th>Time In</th>
+                    <th>Status</th>
+                    <th>Manual Override</th>
+                  </tr>
+                </thead>
+                <tbody id="attendanceTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- =========================================================
+             PAGE 3: CLASS SCHEDULE (#schedule)
+             ========================================================= -->
+        <section class="page-section hidden" id="page-schedule">
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">Class Schedule</h1>
+              <p class="page-subtitle">Weekly timetable (Mon–Sat, 7:00 AM–6:00 PM) stored in <code>/schedule.json</code> &bull; Drives Late &amp; Absent rules</p>
+            </div>
+            <div class="header-actions">
+              <button class="btn btn-primary" onclick="App.openScheduleModal()">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+                  <line x1="12" y1="5" x2="12" y2="19"/>
+                  <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                <span>Add Class Schedule</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Today's Classes Strip -->
+          <div class="card todays-classes-card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Today's Classes (<span id="todayDayName">Monday</span>)</h2>
+                <p class="card-subtitle">Current active class is highlighted automatically via NTP Philippine Time (GMT+8)</p>
+              </div>
+            </div>
+            <div class="today-classes-grid" id="todayClassesList">
+              <!-- Populated by app.js -->
+            </div>
+          </div>
+
+          <!-- Weekly Timetable Grid (Mon-Sat, 7:00 AM - 6:00 PM) -->
+          <div class="card timetable-card">
+            <div class="timetable-scroll">
+              <div class="timetable-grid" id="timetableGrid">
+                <!-- Populated by app.js -->
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       MODAL 1: STUDENT PHOTO & TAP DETAILS MODAL
+       ========================================================= -->
+  <div class="modal-backdrop hidden" id="photoModalBackdrop" onclick="App.closePhotoModal(event)">
+    <div class="modal-card photo-modal-card" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title" id="modalStudentName">Student Name</h3>
+          <p class="modal-subtitle" id="modalStudentMeta">UID: -------- &bull; BSCS 3</p>
+        </div>
+        <button class="modal-close-btn" onclick="App.closePhotoModal()" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-photo-frame" id="modalPhotoFrame">
+          <!-- Shows QVGA JPEG from SD card or avatar fallback -->
+        </div>
+        <div class="modal-tap-details">
+          <div class="detail-pill">
+            <span class="detail-label">Date</span>
+            <strong id="modalTapDate">----</strong>
+          </div>
+          <div class="detail-pill">
+            <span class="detail-label">Tap Time</span>
+            <strong id="modalTapTime">--:--:--</strong>
+          </div>
+          <div class="detail-pill">
+            <span class="detail-label">SD File</span>
+            <strong id="modalPhotoPath">None</strong>
+          </div>
+        </div>
+        <div class="modal-override-bar">
+          <span class="override-label">Set Status Override:</span>
+          <div class="pal-group" id="modalPalButtons"></div>
+        </div>
+        <div class="modal-override-bar" style="margin-top:10px;">
+          <span class="override-label">Student Record:</span>
+          <button type="button" class="btn btn-outline btn-xs" onclick="App.editStudentFromPhotoModal()">Edit Student Details</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       MODAL 2: ADD / EDIT CLASS SCHEDULE MODAL
+       ========================================================= -->
+  <div class="modal-backdrop hidden" id="scheduleModalBackdrop" onclick="App.closeScheduleModal(event)">
+    <div class="modal-card" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title" id="scheduleModalTitle">Add Class Schedule</h3>
+          <p class="modal-subtitle">Saved to <code>/schedule.json</code> on the MicroSD card</p>
+        </div>
+        <button class="modal-close-btn" onclick="App.closeScheduleModal()" aria-label="Close">&times;</button>
+      </div>
+      <form id="scheduleForm" class="modal-body form-grid" onsubmit="App.saveScheduleForm(event)">
+        <input type="hidden" id="schedId">
+
+        <div class="form-group full-width">
+          <label for="schedSubject">Subject Name *</label>
+          <input type="text" id="schedSubject" required placeholder="e.g. Embedded Systems">
+        </div>
+
+        <div class="form-group">
+          <label for="schedClass">Class / Year *</label>
+          <input type="text" id="schedClass" required placeholder="e.g. BSCS 3">
+        </div>
+
+        <div class="form-group">
+          <label for="schedSection">Section *</label>
+          <input type="text" id="schedSection" required placeholder="e.g. Section A">
+        </div>
+
+        <div class="form-group">
+          <label for="schedDay">Day of Week *</label>
+          <select id="schedDay" required>
+            <option value="Mon">Monday</option>
+            <option value="Tue">Tuesday</option>
+            <option value="Wed">Wednesday</option>
+            <option value="Thu">Thursday</option>
+            <option value="Fri">Friday</option>
+            <option value="Sat">Saturday</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="schedRoom">Room *</label>
+          <input type="text" id="schedRoom" required placeholder="e.g. Lab 301">
+        </div>
+
+        <div class="form-group">
+          <label for="schedStart">Start Time *</label>
+          <input type="time" id="schedStart" required min="07:00" max="18:00" value="08:00">
+        </div>
+
+        <div class="form-group">
+          <label for="schedEnd">End Time *</label>
+          <input type="time" id="schedEnd" required min="07:00" max="18:00" value="10:00">
+        </div>
+
+        <div class="form-group">
+          <label for="schedGrace">Late Grace Period (min)</label>
+          <input type="number" id="schedGrace" min="0" max="60" value="15">
+        </div>
+
+        <div class="form-group">
+          <label for="schedColor">Block Color</label>
+          <select id="schedColor">
+            <option value="#3F3FD0">Indigo (#3F3FD0)</option>
+            <option value="#10C98F">Emerald (#10C98F)</option>
+            <option value="#F5A623">Amber (#F5A623)</option>
+            <option value="#E64980">Magenta (#E64980)</option>
+            <option value="#0CA678">Teal (#0CA678)</option>
+            <option value="#7950F2">Violet (#7950F2)</option>
+          </select>
+        </div>
+
+        <div class="modal-footer full-width">
+          <button type="button" class="btn btn-danger hidden" id="deleteScheduleBtn" onclick="App.deleteCurrentSchedule()">Delete</button>
+          <div class="footer-right">
+            <button type="button" class="btn btn-outline" onclick="App.closeScheduleModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Schedule</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       MODAL 3: ADD / EDIT STUDENT MODAL
+       ========================================================= -->
+  <div class="modal-backdrop hidden" id="studentModalBackdrop" onclick="App.closeStudentModal(event)">
+    <div class="modal-card" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title" id="studentModalTitle">Add New Student</h3>
+          <p class="modal-subtitle">Saved to <code>/students.json</code> on the MicroSD card</p>
+        </div>
+        <button class="modal-close-btn" onclick="App.closeStudentModal()" aria-label="Close">&times;</button>
+      </div>
+      <form id="studentForm" class="modal-body form-grid" onsubmit="App.saveStudentForm(event)">
+        <div class="form-group full-width">
+          <label for="studentUid">RFID UID (Hex) *</label>
+          <div style="display:flex;gap:8px;">
+            <input type="text" id="studentUid" required placeholder="e.g. A34F12B8" style="flex:1;text-transform:uppercase;">
+            <button type="button" class="btn btn-outline btn-xs" onclick="App.fillLatestUnregisteredUid()" title="Paste UID from last tap">Use Last Tap</button>
+          </div>
+          <span style="font-size:11px;color:var(--text-muted);margin-top:3px;">Tap a card on the RC522 reader or type its 8-character hex UID.</span>
+        </div>
+
+        <div class="form-group full-width">
+          <label for="studentName">Student Full Name *</label>
+          <input type="text" id="studentName" required placeholder="e.g. Juan Dela Cruz">
+        </div>
+
+        <div class="form-group">
+          <label for="studentClass">Class / Year *</label>
+          <input type="text" id="studentClass" required placeholder="e.g. BSCS 3">
+        </div>
+
+        <div class="form-group">
+          <label for="studentSection">Section *</label>
+          <input type="text" id="studentSection" required placeholder="e.g. Section A">
+        </div>
+
+        <div class="modal-footer full-width">
+          <button type="button" class="btn btn-danger hidden" id="deleteStudentBtn" onclick="App.deleteCurrentStudent()">Delete</button>
+          <div class="footer-right">
+            <button type="button" class="btn btn-outline" onclick="App.closeStudentModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Student</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       MODAL 4: EXPORT CSV FILTER MODAL (Choose Subject & Section)
+       ========================================================= -->
+  <div class="modal-backdrop hidden" id="exportModalBackdrop" onclick="App.closeExportModal(event)">
+    <div class="modal-card" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">Export Attendance CSV</h3>
+          <p class="modal-subtitle">Choose the Subject, Section, Class, and Date range to export</p>
+        </div>
+        <button class="modal-close-btn" onclick="App.closeExportModal()" aria-label="Close">&times;</button>
+      </div>
+      <form id="exportForm" class="modal-body form-grid" onsubmit="App.confirmExportCSV(event)">
+        <div class="form-group full-width">
+          <label for="exportSubject">Subject</label>
+          <select id="exportSubject">
+            <option value="">All Subjects</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="exportSection">Section</label>
+          <select id="exportSection">
+            <option value="">All Sections</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="exportClass">Class / Year</label>
+          <select id="exportClass">
+            <option value="">All Classes</option>
+          </select>
+        </div>
+
+        <div class="form-group full-width">
+          <label for="exportDateScope">Date Range</label>
+          <select id="exportDateScope">
+            <option value="selected" id="exportSelectedDateOpt">Selected Date Only</option>
+            <option value="all">All Dates (Full History for Selected Filters)</option>
+          </select>
+        </div>
+
+        <div class="modal-footer full-width">
+          <div class="footer-right">
+            <button type="button" class="btn btn-outline" onclick="App.closeExportModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+              </svg>
+              <span>Download CSV</span>
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
